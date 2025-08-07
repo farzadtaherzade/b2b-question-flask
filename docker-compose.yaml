@@ -1,10 +1,10 @@
 version: "3.9"
 
 services:
-  app:
+  flask-app:
     build: .
     volumes:
-      - .:/app
+      - .:/project
     ports:
       - "5000:5000"
     depends_on:

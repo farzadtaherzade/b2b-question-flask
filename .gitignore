@@ -104,3 +104,6 @@ dmypy.json
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# migrations folder
+migrations/
