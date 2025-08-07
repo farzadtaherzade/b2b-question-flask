@@ -9,3 +9,4 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     CELERY_BROKER_URL = 'redis://redis:6379/0'
     CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+    JWT_SECRET_KEY=os.environ.get("JWT_SECRET_KEY")

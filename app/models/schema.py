@@ -1,8 +1,6 @@
-from flask_marshmallow import Marshmallow
 from app.models.question import Question, SessionQuestion
 from app.models.session import Session
 from app.models.answer import Answer
-from app.models.player import Player
 from marshmallow import fields, validates, ValidationError
 from app.extensions import ma
 

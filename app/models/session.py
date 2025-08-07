@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 from app.extensions import db
+from app.models.player import Player
 
 
 class Session(db.Model):
@@ -10,4 +11,4 @@ class Session(db.Model):
     started = db.Column(db.Boolean, default=False)
     finished = db.Column(db.Boolean, default=False)
     
-    players = db.relationship('Player', backref='session', lazy=True)
+    players = db.relationship(Player, backref='session', lazy=True)

@@ -14,6 +14,7 @@ marshmallow-sqlalchemy = "*"
 flask-migrate = "*"
 celery = "*"
 redis = "*"
+flask-jwt-extended = "*"
 
 [dev-packages]
 
