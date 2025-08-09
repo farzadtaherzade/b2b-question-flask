@@ -6,7 +6,8 @@ from app.models.answer import  Answer
 from app.extensions import db
 from sqlalchemy.sql.expression import func
 from app.models.session import Session
-from app.models.schema import answer_question_schema 
+from app.models.schema import answer_question_schema , question_schema
+from flask_jwt_extended import jwt_required, get_current_user
 
 
 @bp.route("/question", methods=["GET"])
@@ -58,4 +59,25 @@ def answer_question():
     return jsonify({
         "message": "Answer submitted successfully",
         "answer": answer_question_schema.dump(data)
+    }), 201
+    
+@bp.route("/questions/create", methods=["POST"])
+@jwt_required()
+def create_question():
+    try:
+        json_data = request.get_json()
+        if not json_data:
+            return jsonify({"error": "No input data provided"}), 400
+
+        data = question_schema.load(json_data)  # validates 'text'
+    except ValidationError as err:
+        return jsonify(err.messages), 400
+
+    new_question = Question(text=data["text"]) # type: ignore
+    db.session.add(new_question)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Question created successfully",
+        "question": question_schema.dump(new_question)
     }), 201

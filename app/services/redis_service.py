@@ -11,3 +11,6 @@ def set_auth_code(code, user_id):
 
 def remove_auth_code(user_id):
     return client.delete(f"code:{user_id}")
+
+def update_user_score(score, username):
+    return client.zincrby("leaderboard", score, username)

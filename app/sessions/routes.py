@@ -4,7 +4,7 @@ from app.models.question import Question, SessionQuestion
 from app.models.player import Player
 from app.models.answer import Answer
 from flask import request, jsonify
-from app.models.schema import session_schema, questions_schema, session_questions_schema, answer_question_schema,answer_questions_schema
+from app.models.schema import session_schema, questions_schema, session_questions_schema, answer_question_schema, answer_questions_schema
 from app.extensions import db
 from sqlalchemy.sql.expression import func
 from marshmallow import ValidationError
@@ -99,14 +99,14 @@ def start_game(id):
             },
         }), 400
     questions = Question.query.order_by(func.random()).limit(10).all()
-    session_questions = []
+    ret = []
     for index, question in enumerate(questions, start=1):
         session_question = SessionQuestion(
             session_id=session.id,
             question_id=question.id,
             order=index
         )
-        session_questions.append(session_questions)
+        ret.append(session_question)
         db.session.add(session_question)
 
     session.started = True
@@ -114,7 +114,7 @@ def start_game(id):
     db.session.commit()
     ended_session.apply_async(args=[session.id], countdown=70)  # type: ignore
     return jsonify({
-        "questions": session_questions_schema.dump(session_questions),
+        "questions": session_questions_schema.dump(ret),
     })
 
 
@@ -143,10 +143,16 @@ def ready_player(id):
 @bp.route("/session/<string:session_id>/result", methods=["GET"])
 def result(session_id):
     session = Session.query.get_or_404(session_id)
+    if not session.finished:
+        return jsonify({
+            "message": "game is not finisehd yet!"
+        }), 400
     qeustions = SessionQuestion.query.filter_by(session_id=session_id).all()
 
-    answers_player_1 = Answer.query.filter_by(session_id=session_id, player_id=session.players[0].id).all()
-    answers_player_2 = Answer.query.filter_by(session_id=session_id, player_id=session.players[1].id).all()
+    answers_player_1 = Answer.query.filter_by(
+        session_id=session_id, player_id=session.players[0].id).all()
+    answers_player_2 = Answer.query.filter_by(
+        session_id=session_id, player_id=session.players[1].id).all()
     return jsonify(
         {
             "data": {

@@ -13,19 +13,16 @@ class SessionSchema(ma.SQLAlchemyAutoSchema):
 session_schema = SessionSchema()
 sessions_schema = SessionSchema(many=True)
 
-class QuestionSchema(ma.SQLAlchemyAutoSchema):
-    class Meta:
-        model = Question
-        load_instance = True
-        include_fk = True
 
-    text = fields.Str(required=True, validate=lambda x: 0 < len(x) <= 150)
+class QuestionSchema(ma.Schema):
+    text = fields.Str(required=True)
 
-    @validates('text')
-    def validate_text(self, value):
+    @validates("text")
+    def validate_text(self, value, **kwargs):
         if not value.strip():
-            raise ValidationError('Question text cannot be empty or just whitespace.')
-
+            raise ValidationError("Question text cannot be empty")
+        if len(value) > 500:
+            raise ValidationError("Question text cannot exceed 500 characters")
 question_schema = QuestionSchema()
 questions_schema = QuestionSchema(many=True)
 
