@@ -4,7 +4,7 @@ from app.models.question import Question, SessionQuestion
 from app.models.player import Player
 from app.models.answer import Answer
 from flask import request, jsonify
-from app.models.schema import session_schema, questions_schema, session_questions_schema, answer_question_schema, answer_questions_schema
+from app.models.schema import session_schema, questions_schema, session_questions_schema, players_schema, answer_questions_schema
 from app.extensions import db
 from sqlalchemy.sql.expression import func
 from marshmallow import ValidationError
@@ -32,44 +32,58 @@ def create_session():
     db.session.commit()
 
     player = Player(
-        username=username,
-        session_id=session.id
+        username=username.lower(),
+        session_id=session.id,
+        is_leader=True,
     )
     db.session.add(player)
     db.session.commit()
 
     return {"message": "Session created",
-            "session room": session_schema.dump(session),
+            "session_room": session_schema.dump(session),
             "player_id": player.id
             }, 201
+
+
+@bp.route("/session/<string:id>/status", methods=["GET"])
+def session_status(id):
+    session = Session.query.get_or_404(id)
+
+    return jsonify({
+        "session_room": session_schema.dump(session),
+        "players": players_schema.dump(session.players)
+    }), 200
 
 
 @bp.route("/session/<string:id>/join", methods=["POST"])
 def join_session(id):
     session = Session.query.get_or_404(id)
 
-    if len(session.players) > 2:
-        return {
+    if len(session.players) >= 2:
+        return jsonify({
             "errors": {
-                "players": "lobby is full max is 2"
+                "players": "lobby is full max is 2",
+                "action": "LOBBY_FULL"
             }
-        }
+        }), 400
 
     data = request.get_json()
     username = data.get("username")
     if not data and not data.get("username"):
         return jsonify({"errors": {
-            "username": "Is Required"
+            "username": "Is Required",
+            "action":"USERNAME_REQUIRED"
         }}), 400
     # cb20efeb-88e7-4a56-b1d2-f15c027c27c7
     username_exists = Player.query.filter_by(
-        username=data.get("username"),
+        username=data.get("username").lower(),
         session_id=session.id
     ).first()
 
     if username_exists:
         return jsonify({"errors": {
-            "username": "Username is in the game try another username"
+            "username": "Username is in the game try another username",
+            "action": "DUPLICATE_USERNAME"
         }}), 400
 
     player = Player(
@@ -81,9 +95,33 @@ def join_session(id):
     return jsonify({"message": "You Joined the match"})
 
 
-@bp.route("/session/<string:id>/start")
+@bp.route("/session/<string:id>/start", methods=["POST"])
 def start_game(id):
     session = Session.query.get_or_404(id)
+    data = request.get_json()
+
+    player_id = data.get("player_id")
+    if not player_id:
+        return jsonify({
+            "errors": {
+                "player_id": "player_id is required"
+            }
+        }), 400
+
+    player = next((p for p in session.players if p.id == player_id), None)
+    if not player:
+        return jsonify({
+            "errors": {
+                "player_id": "Player not found in this session"
+            }
+        }), 400
+
+    if not player.is_leader:
+        return jsonify({
+            "errors": {
+                "permission": "Only the leader can start the game"
+            }
+        }), 403
 
     if session.started:
         session_question = SessionQuestion.query.filter_by(
@@ -130,6 +168,9 @@ def ready_player(id):
             }
         }), 400
 
+    print(username)
+    print(id)
+    
     player = Player.query.filter_by(
         username=username, session_id=id).first_or_404()
     player.is_ready = True

@@ -1,14 +1,25 @@
 from app.models.question import Question, SessionQuestion
 from app.models.session import Session
 from app.models.answer import Answer
+from app.models.player import Player
 from marshmallow import fields, validates, ValidationError
 from app.extensions import ma
+
+class PlayerSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Player
+        load_instance = True
+        include_fk = True
+
+players_schema = PlayerSchema(many=True)
 
 class SessionSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Session
         load_instance = True
         include_fk = True
+    
+    players = ma.Nested(PlayerSchema) # type: ignore
 
 session_schema = SessionSchema()
 sessions_schema = SessionSchema(many=True)

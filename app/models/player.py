@@ -7,11 +7,13 @@ class Player(db.Model):
     session_id = db.Column(db.String, db.ForeignKey("session.id"), nullable=False)
     joined_at = db.Column(db.DateTime, default=datetime.now)
     is_ready = db.Column(db.Boolean, default=False)
+    is_leader = db.Column(db.Boolean, default=False)
     
     __table_args__ = (
         db.UniqueConstraint("username", "session_id", name="player_session__id_username"),
     )
     
-    def __init__(self, username:str, session_id: str) -> None:
+    def __init__(self, username:str, session_id: str, is_leader=False) -> None:
         self.username = username
         self.session_id = session_id
+        self.is_leader=is_leader

@@ -15,6 +15,9 @@ flask-migrate = "*"
 celery = "*"
 redis = "*"
 flask-jwt-extended = "*"
+flask-socketio = "*"
+eventlet = "*"
+flask-cors = "*"
 
 [dev-packages]
 

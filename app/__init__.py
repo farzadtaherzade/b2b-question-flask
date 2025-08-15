@@ -1,9 +1,10 @@
 from flask import Flask
 from config import Config
-from app.extensions import db, ma, migrate, jwt
+from app.extensions import db, ma, migrate, jwt, socket, cors
 from dotenv import load_dotenv
 from faker import Faker
 from app.celery_app import celery_init_app
+
 
 load_dotenv()
 faker = Faker()
@@ -18,6 +19,8 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     celery_init_app(app)
     jwt.init_app(app)
+    socket.init_app(app)
+    cors.init_app(app)
 
     # register blueprints
     from app.main import bp as main_bp
