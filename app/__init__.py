@@ -4,10 +4,11 @@ from app.extensions import db, ma, migrate, jwt, socket, cors
 from dotenv import load_dotenv
 from faker import Faker
 from app.celery_app import celery_init_app
-
+import logging
 
 load_dotenv()
 faker = Faker()
+logging.basicConfig(level=logging.DEBUG)
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -28,6 +29,7 @@ def create_app(config_class=Config):
     from app.sessions import bp as session_bp
     from app.users import bp as users_bp
     from app.errors import bp as error_bp
+    from app.services import socket_services
 
     app.register_blueprint(main_bp)
     app.register_blueprint(question_bp)

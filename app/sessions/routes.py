@@ -35,6 +35,7 @@ def create_session():
         username=username.lower(),
         session_id=session.id,
         is_leader=True,
+        is_ready=True
     )
     db.session.add(player)
     db.session.commit()

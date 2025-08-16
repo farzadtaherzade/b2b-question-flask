@@ -13,7 +13,8 @@ class Player(db.Model):
         db.UniqueConstraint("username", "session_id", name="player_session__id_username"),
     )
     
-    def __init__(self, username:str, session_id: str, is_leader=False) -> None:
+    def __init__(self, username:str, session_id: str, is_leader=False, is_ready=False) -> None:
         self.username = username
         self.session_id = session_id
         self.is_leader=is_leader
+        self.is_ready = is_ready

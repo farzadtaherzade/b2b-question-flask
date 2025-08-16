@@ -16,8 +16,8 @@ celery = "*"
 redis = "*"
 flask-jwt-extended = "*"
 flask-socketio = "*"
-eventlet = "*"
 flask-cors = "*"
+eventlet = "*"
 
 [dev-packages]
 
