@@ -5,7 +5,7 @@ from app.models.player import Player
 from app.models.answer import Answer
 from flask import request, jsonify
 from app.models.schema import session_schema, questions_schema, session_questions_schema, players_schema, answer_questions_schema
-from app.extensions import db
+from app.extensions import db, socket
 from sqlalchemy.sql.expression import func
 from marshmallow import ValidationError
 
@@ -55,6 +55,21 @@ def session_status(id):
         "players": players_schema.dump(session.players)
     }), 200
 
+@bp.route("/session/<string:id>/questions", methods=["GET"])
+def session_questions(id):
+    questions = SessionQuestion.query.filter_by(session_id=id)
+    
+    return jsonify({
+        "questions": session_questions_schema.dump(questions)
+        }), 200
+
+@bp.route("/session/<string:id>/players", methods=["GET"])
+def session_players(id):
+    players = Player.query.filter_by(session_id=id)
+    
+    return jsonify({
+        "players": players_schema.dump(players)
+        }), 200
 
 @bp.route("/session/<string:id>/join", methods=["POST"])
 def join_session(id):
@@ -73,7 +88,7 @@ def join_session(id):
     if not data and not data.get("username"):
         return jsonify({"errors": {
             "username": "Is Required",
-            "action":"USERNAME_REQUIRED"
+            "action": "USERNAME_REQUIRED"
         }}), 400
     # cb20efeb-88e7-4a56-b1d2-f15c027c27c7
     username_exists = Player.query.filter_by(
@@ -96,6 +111,7 @@ def join_session(id):
     return jsonify({"message": "You Joined the match"})
 
 
+
 @bp.route("/session/<string:id>/start", methods=["POST"])
 def start_game(id):
     session = Session.query.get_or_404(id)
@@ -105,7 +121,8 @@ def start_game(id):
     if not player_id:
         return jsonify({
             "errors": {
-                "player_id": "player_id is required"
+                "player_id": "player_id is required",
+                "action": "PLAYER_DUPLICATE_USERNAMEID_REQUIRED"
             }
         }), 400
 
@@ -113,14 +130,22 @@ def start_game(id):
     if not player:
         return jsonify({
             "errors": {
-                "player_id": "Player not found in this session"
+                "player_id": "Player not found in this session",
+                "action": "PLAYER_NOT_EXISTS"
             }
         }), 400
+
+    if session.started:
+        session_questions = SessionQuestion.query.filter_by(session_id=session.id).all()
+        return jsonify({
+            "questions": session_questions_schema.dump(session_questions)
+        }), 200
 
     if not player.is_leader:
         return jsonify({
             "errors": {
-                "permission": "Only the leader can start the game"
+                "permission": "Only the leader can start the game",
+                "action": "DONT_HAVE_PERMISSION"
             }
         }), 403
 
@@ -152,9 +177,11 @@ def start_game(id):
     db.session.add(session)
     db.session.commit()
     ended_session.apply_async(args=[session.id], countdown=70)  # type: ignore
+    socket.emit("game_start", {"questions": session_questions_schema.dump(ret)}, to=session.id)
     return jsonify({
         "questions": session_questions_schema.dump(ret),
     })
+
 
 
 @bp.route("/session/<string:id>/ready", methods=["POST"])
@@ -171,10 +198,10 @@ def ready_player(id):
 
     print(username)
     print(id)
-    
+
     player = Player.query.filter_by(
         username=username, session_id=id).first_or_404()
-    player.is_ready = True
+    player.is_ready = not player.is_ready
     db.session.add(player)
     db.session.commit()
     return jsonify({
@@ -201,10 +228,12 @@ def result(session_id):
                 "player_1": {
                     "answers": answer_questions_schema.dump(answers_player_1) if answers_player_1 else [],
                     "score": len(answers_player_1),
+                    "username": session.players[0].username
                 },
                 "player_2": {
                     "answers": answer_questions_schema.dump(answers_player_2) if answers_player_2 else [],
                     "score": len(answers_player_2),
+                    "username": session.players[1].username
                 }
             },
             "questions": session_questions_schema.dump(qeustions),

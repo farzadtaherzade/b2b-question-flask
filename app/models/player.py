@@ -8,6 +8,7 @@ class Player(db.Model):
     joined_at = db.Column(db.DateTime, default=datetime.now)
     is_ready = db.Column(db.Boolean, default=False)
     is_leader = db.Column(db.Boolean, default=False)
+    notification_sended=db.Column(db.Boolean, default=False)
     
     __table_args__ = (
         db.UniqueConstraint("username", "session_id", name="player_session__id_username"),

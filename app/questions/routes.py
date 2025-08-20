@@ -1,26 +1,27 @@
 from marshmallow import ValidationError
 from app.questions import question_bp as bp
 from flask import jsonify, request
-from app.models.question import Question,SessionQuestion
-from app.models.answer import  Answer
+from app.models.question import Question, SessionQuestion
+from app.models.answer import Answer
 from app.extensions import db
 from sqlalchemy.sql.expression import func
 from app.models.session import Session
-from app.models.schema import answer_question_schema , question_schema
+from app.models.schema import answer_question_schema, question_schema
 from flask_jwt_extended import jwt_required, get_current_user
 
 
 @bp.route("/question", methods=["GET"])
 def index():
     questions = Question.query.order_by(func.random()).limit(10).all()
-    
+
     return jsonify({
         "questions": [
             q.to_dict()
             for q in questions
         ]
     })
-    
+
+
 @bp.route("/question/answer", methods=["POST"])
 def answer_question():
     try:
@@ -60,7 +61,8 @@ def answer_question():
         "message": "Answer submitted successfully",
         "answer": answer_question_schema.dump(data)
     }), 201
-    
+
+
 @bp.route("/questions/create", methods=["POST"])
 @jwt_required()
 def create_question():
@@ -73,7 +75,7 @@ def create_question():
     except ValidationError as err:
         return jsonify(err.messages), 400
 
-    new_question = Question(text=data["text"]) # type: ignore
+    new_question = Question(text=data["text"])  # type: ignore
     db.session.add(new_question)
     db.session.commit()
 
