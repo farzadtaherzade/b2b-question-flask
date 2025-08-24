@@ -57,7 +57,7 @@ def session_status(id):
 
 @bp.route("/session/<string:id>/questions", methods=["GET"])
 def session_questions(id):
-    questions = SessionQuestion.query.filter_by(session_id=id)
+    questions = SessionQuestion.query.filter_by(session_id=id).order_by(SessionQuestion.order).all()
     
     return jsonify({
         "questions": session_questions_schema.dump(questions)
@@ -162,7 +162,7 @@ def start_game(id):
                 "players": "Players not ready",
             },
         }), 400
-    questions = Question.query.order_by(func.random()).limit(10).all()
+    questions = Question.query.order_by(func.random()).limit(20).all()
     ret = []
     for index, question in enumerate(questions, start=1):
         session_question = SessionQuestion(
@@ -170,6 +170,7 @@ def start_game(id):
             question_id=question.id,
             order=index
         )
+        print(index)
         ret.append(session_question)
         db.session.add(session_question)
 

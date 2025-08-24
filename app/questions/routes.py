@@ -3,11 +3,12 @@ from app.questions import question_bp as bp
 from flask import jsonify, request
 from app.models.question import Question, SessionQuestion
 from app.models.answer import Answer
-from app.extensions import db
+from app.extensions import db, socket
 from sqlalchemy.sql.expression import func
 from app.models.session import Session
 from app.models.schema import answer_question_schema, question_schema
-from flask_jwt_extended import jwt_required, get_current_user
+from flask_jwt_extended import jwt_required
+from app.tasks import handle_questions_finished
 
 
 @bp.route("/question", methods=["GET"])
@@ -40,7 +41,10 @@ def answer_question():
     if not player:
         return jsonify({"error": "Player not found in session"}), 404
 
-    question = SessionQuestion.query.get(data.question_id)
+    question = SessionQuestion.query.filter_by(
+        session_id=data.session_id,
+        question_id=data.question_id
+    ).first()
     if not question:
         return jsonify({"error": "Question not found"}), 404
 
@@ -53,9 +57,26 @@ def answer_question():
 
     if existing_answer:
         return jsonify({"error": "Player has already answered this question"}), 400
-
-    db.session.add(data)
+    answer = Answer(
+        session_id=data.session_id,
+        player_id=data.player_id,
+        question_id=data.question_id,
+        answer=data.answer
+    )
+    db.session.add(answer)
     db.session.commit()
+
+    print("print_order", question.order,
+          "question order", "question.id", question.id)
+    if question.order == 20:
+        answer_count = Answer.query.filter_by(
+            session_id=data.session_id).count()
+        print(answer_count, "answer_count -- ---- --- -")
+        if answer_count == 40:
+            handle_questions_finished.delay(data.session_id)  # type: ignore
+
+        socket.emit("question_finished", {
+                    "msg": f"{player.username} finish the questions"}, to=data.session_id)
 
     return jsonify({
         "message": "Answer submitted successfully",
